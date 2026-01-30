@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Offshore Wind Farm Boundaries Verification</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        body { margin: 0; padding: 0; }
+        #map { width: 100vw; height: 100vh; }
+        .legend {
+            background: white;
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.3);
+        }
+        .legend h4 { margin: 0 0 10px 0; }
+        .legend-item { margin: 5px 0; }
+        .legend-color {
+            display: inline-block;
+            width: 20px;
+            height: 12px;
+            margin-right: 8px;
+            border: 1px solid #333;
+        }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+    <script>
+        // Wind farm bounding boxes - expanded based on user verification
+        const windFarms = [
+            {
+                name: "Empire Wind (OCS-A 0512)",
+                bounds: [[40.05, -73.75], [40.45, -73.25]],
+                color: "#e41a1c"
+            },
+            {
+                name: "Vineyard Wind (OCS-A 0501)",
+                bounds: [[40.85, -70.75], [41.25, -70.15]],
+                color: "#377eb8"
+            },
+            {
+                name: "Revolution Wind (OCS-A 0486)",
+                bounds: [[41.05, -71.45], [41.55, -71.05]],
+                color: "#4daf4a"
+            },
+            {
+                name: "Sunrise Wind (OCS-A 0487)",
+                bounds: [[40.80, -71.15], [41.05, -70.75]],
+                color: "#984ea3"
+            },
+            {
+                name: "South Fork Wind (OCS-A 0517)",
+                bounds: [[40.80, -71.85], [41.05, -71.15]],
+                color: "#ff7f00"
+            },
+            {
+                name: "CVOW (OCS-A 0483)",
+                bounds: [[36.70, -75.60], [37.10, -75.10]],
+                color: "#a65628"
+            }
+        ];
+
+        // Initialize map
+        const map = L.map('map');
+
+        // Add OpenStreetMap tiles
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(map);
+
+        // Add each wind farm boundary
+        const allBounds = [];
+        windFarms.forEach(wf => {
+            const rect = L.rectangle(wf.bounds, {
+                color: wf.color,
+                weight: 3,
+                fillOpacity: 0.2
+            }).addTo(map);
+
+            rect.bindPopup(`<b>${wf.name}</b><br>
+                SW: ${wf.bounds[0][0].toFixed(3)}, ${wf.bounds[0][1].toFixed(3)}<br>
+                NE: ${wf.bounds[1][0].toFixed(3)}, ${wf.bounds[1][1].toFixed(3)}`);
+
+            // Add label
+            const center = [
+                (wf.bounds[0][0] + wf.bounds[1][0]) / 2,
+                (wf.bounds[0][1] + wf.bounds[1][1]) / 2
+            ];
+            L.marker(center, {
+                icon: L.divIcon({
+                    className: 'label',
+                    html: `<div style="background:white;padding:2px 6px;border-radius:3px;border:2px solid ${wf.color};font-weight:bold;white-space:nowrap;font-size:11px;">${wf.name.split(' (')[0]}</div>`,
+                    iconSize: [100, 20]
+                })
+            }).addTo(map);
+
+            allBounds.push(wf.bounds);
+        });
+
+        // Fit map to show all wind farms
+        const flatBounds = allBounds.flat();
+        map.fitBounds(flatBounds, { padding: [50, 50] });
+
+        // Add legend
+        const legend = L.control({ position: 'bottomright' });
+        legend.onAdd = function(map) {
+            const div = L.DomUtil.create('div', 'legend');
+            div.innerHTML = '<h4>Wind Farms</h4>';
+            windFarms.forEach(wf => {
+                div.innerHTML += `<div class="legend-item"><span class="legend-color" style="background:${wf.color}"></span>${wf.name}</div>`;
+            });
+            return div;
+        };
+        legend.addTo(map);
+    </script>
+</body>
+</html>

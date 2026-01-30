@@ -1,0 +1,36 @@
+[project]
+name = "ais-pull"
+version = "0.1.0"
+description = "Download and filter AIS data from NOAA Marine Cadastre"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "requests>=2.31",
+    "tqdm>=4.66",
+    "polars>=1.0",
+    "geopandas>=1.0",
+    "pyarrow>=15.0",
+    "matplotlib>=3.10.8",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "UP",  # pyupgrade
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["ais_pull"]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.14.14",
+]
