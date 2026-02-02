@@ -12,6 +12,9 @@ from urllib.parse import urlparse
 import requests
 from tqdm import tqdm
 
+STALL_TIMEOUT = 60  # seconds - restart download if no data received for this long
+MAX_RETRIES = 5
+
 
 def download_ais(url: str, data_dir: str = "data") -> Path:
     """
@@ -42,19 +45,40 @@ def download_ais(url: str, data_dir: str = "data") -> Path:
     if not zip_path.exists():
         print(f"Downloading {url}...")
 
-        # Stream download with progress bar
-        response = requests.get(url, stream=True)
-        response.raise_for_status()
+        for attempt in range(1, MAX_RETRIES + 1):
+            try:
+                # Stream download with progress bar
+                # timeout=(connect_timeout, read_timeout) - read_timeout triggers if no data for 60s
+                response = requests.get(url, stream=True, timeout=(30, STALL_TIMEOUT))
+                response.raise_for_status()
 
-        total_size = int(response.headers.get("content-length", 0))
+                total_size = int(response.headers.get("content-length", 0))
 
-        with open(zip_path, "wb") as f:
-            with tqdm(total=total_size, unit="B", unit_scale=True, desc=filename) as pbar:
-                for chunk in response.iter_content(chunk_size=8192):
-                    f.write(chunk)
-                    pbar.update(len(chunk))
+                with open(zip_path, "wb") as f:
+                    with tqdm(total=total_size, unit="B", unit_scale=True, desc=filename) as pbar:
+                        for chunk in response.iter_content(chunk_size=8192):
+                            f.write(chunk)
+                            pbar.update(len(chunk))
 
-        print(f"Downloaded: {zip_path}")
+                print(f"Downloaded: {zip_path}")
+                break  # Success, exit retry loop
+
+            except requests.exceptions.Timeout:
+                print(f"\nDownload stalled (no data for {STALL_TIMEOUT}s), attempt {attempt}/{MAX_RETRIES}")
+                # Remove partial download
+                if zip_path.exists():
+                    os.remove(zip_path)
+                if attempt == MAX_RETRIES:
+                    raise RuntimeError(f"Download failed after {MAX_RETRIES} attempts due to stalls")
+                print("Restarting download...")
+
+            except requests.exceptions.RequestException as e:
+                print(f"\nDownload error: {e}, attempt {attempt}/{MAX_RETRIES}")
+                if zip_path.exists():
+                    os.remove(zip_path)
+                if attempt == MAX_RETRIES:
+                    raise
+                print("Restarting download...")
     else:
         print(f"Zip already exists: {zip_path}")
 

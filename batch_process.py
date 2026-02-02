@@ -13,10 +13,11 @@ from config import AIS_URL_TEMPLATE, END_DATE, START_DATE
 from download_ais import download_ais
 from process_ais import process_ais
 
-# Directories
-DATA_DIR = Path("data")
-OUTPUT_DIR = Path("output")
-PROGRESS_FILE = Path("progress.txt")
+# Directories (relative to script location, not cwd)
+SCRIPT_DIR = Path(__file__).parent.resolve()
+DATA_DIR = SCRIPT_DIR / "data"
+OUTPUT_DIR = SCRIPT_DIR / "output"
+PROGRESS_FILE = SCRIPT_DIR / "progress.txt"
 
 
 def load_completed_dates() -> set[str]:
